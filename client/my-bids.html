@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>My Bids</title>
+<script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/custom.css"></head>
+<body class="bg-gray-50 text-gray-800">
+<header class="bg-white/80 backdrop-blur border-b">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="/" class="text-2xl font-extrabold text-indigo-600">🔨 AuctionHub</a>
+    <nav id="nav-right" class="flex items-center gap-2"></nav>
+  </div>
+</header>
+<main class="max-w-7xl mx-auto p-6">
+  <h1 class="text-3xl font-bold mb-4">My Bids</h1>
+  <div id="list" class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"></div>
+</main>
+<script src="/app.js"></script>
+<script>
+  async function load(){
+    const res = await fetch('/api/items/me/bids');
+    if (res.status === 401) { location.href='/login.html'; return; }
+    const data = await res.json();
+    const list = document.getElementById('list');
+    if (!data.length){ list.innerHTML = '<div class="text-gray-500">No bids yet.</div>'; return; }
+    list.innerHTML = data.map(b => `
+      <a href="/item.html?id=${b.itemId}" class="card block group">
+        <img src="${b.imagePath || b.imageUrl}" class="w-full h-40 object-cover group-hover:scale-105 transition duration-300" />
+        <div class="p-4">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold line-clamp-1">${b.title}</div>
+            <span class="badge ${new Date(b.endTime)>Date.now()?'badge-live':'badge-ended'}">${new Date(b.endTime)>Date.now()?'Live':'Ended'}</span>
+          </div>
+          <div class="text-sm text-gray-600 mt-1">Your max: <span class="font-medium">${money(b.myMaxBid)}</span></div>
+          <div class="mt-2 text-green-600 font-bold">Current: ${money(b.currentPrice)}</div>
+        </div>
+      </a>
+    `).join('');
+  }
+  load();
+</script>
+</body></html>

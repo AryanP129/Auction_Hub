@@ -1,0 +1,65 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Sell Item</title>
+<script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/custom.css"></head>
+<body class="bg-gray-50 text-gray-800">
+<header class="bg-white/80 backdrop-blur border-b">
+  <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="/" class="text-2xl font-extrabold text-indigo-600">🔨 AuctionHub</a>
+    <nav id="nav-right" class="flex items-center gap-2"></nav>
+  </div>
+</header>
+<main class="max-w-5xl mx-auto p-6">
+  <h1 class="text-3xl font-bold mb-4">List an Item</h1>
+  <form id="sellForm" class="card p-6 grid md:grid-cols-2 gap-4" enctype="multipart/form-data">
+    <div class="md:col-span-2">
+      <label class="text-sm text-gray-600">Title</label>
+      <input name="title" placeholder="Item title" required class="border rounded-xl px-3 py-2 w-full" />
+    </div>
+    <div class="md:col-span-2">
+      <label class="text-sm text-gray-600">Description</label>
+      <textarea name="description" placeholder="Describe your item" class="border rounded-xl px-3 py-2 w-full"></textarea>
+    </div>
+    <div>
+      <label class="text-sm text-gray-600">Starting Price (INR)</label>
+      <input name="startingPrice" type="number" placeholder="500" required class="border rounded-xl px-3 py-2 w-full" />
+    </div>
+    <div>
+      <label class="text-sm text-gray-600">End Time</label>
+      <input name="endTime" type="datetime-local" class="border rounded-xl px-3 py-2 w-full" />
+    </div>
+    <div class="md:col-span-2 grid gap-2">
+      <label class="text-sm text-gray-600">Upload JPEG/PNG Image</label>
+      <input name="image" type="file" accept="image/jpeg,image/png" class="border rounded-xl px-3 py-2 w-full bg-white" />
+      <img id="preview" class="hidden w-56 h-40 object-cover rounded-xl border" />
+      <div class="text-xs text-gray-500">Max 5MB. Or paste an Image URL below.</div>
+      <input name="imageUrl" placeholder="(Optional) Image URL" class="border rounded-xl px-3 py-2 w-full" />
+    </div>
+    <div class="md:col-span-2">
+      <button class="bg-indigo-600 text-white px-5 py-2 rounded-xl w-max">Create Auction</button>
+    </div>
+  </form>
+  <div id="msg" class="text-sm text-red-600 mt-3"></div>
+</main>
+<script src="/app.js"></script>
+<script>
+  const fileInput = document.querySelector('input[name="image"]');
+  const preview = document.getElementById('preview');
+  fileInput.addEventListener('change', (e)=>{
+    const f = e.target.files[0];
+    if (!f) { preview.classList.add('hidden'); return; }
+    const url = URL.createObjectURL(f);
+    preview.src = url; preview.classList.remove('hidden');
+  });
+
+  document.getElementById('sellForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const end = fd.get('endTime');
+    if (end){ fd.set('endTime', new Date(end).toISOString()); }
+    const res = await fetch('/api/items/sell', { method:'POST', body: fd });
+    const json = await res.json();
+    if (!res.ok){ document.getElementById('msg').innerText = json.message || 'Failed'; return; }
+    toast('Item listed!');
+    location.href = '/item.html?id=' + json.item._id;
+  });
+</script>
+</body></html>

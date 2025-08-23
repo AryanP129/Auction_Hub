@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Login</title>
+<script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/custom.css"></head>
+<body class="bg-gray-50 text-gray-800">
+<header class="bg-white/80 backdrop-blur border-b">
+  <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="/" class="text-2xl font-extrabold text-indigo-600">🔨 AuctionHub</a>
+    <nav id="nav-right" class="flex items-center gap-2"></nav>
+  </div>
+</header>
+<main class="max-w-md mx-auto p-6">
+  <div class="card p-6">
+    <h1 class="text-2xl font-bold mb-4">Login</h1>
+    <form id="f" class="grid gap-3">
+      <input name="email" type="email" placeholder="Email" class="border rounded-xl px-3 py-2" required />
+      <input name="password" type="password" placeholder="Password" class="border rounded-xl px-3 py-2" required />
+      <button class="bg-indigo-600 text-white px-5 py-2 rounded-xl">Login</button>
+    </form>
+    <div id="msg" class="text-sm text-red-600 mt-2"></div>
+    <div class="text-sm mt-3">New here? <a href="/signup.html" class="text-indigo-600">Create account</a></div>
+  </div>
+</main>
+<script src="/app.js"></script>
+<script>
+  document.getElementById('f').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(e.target));
+    const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const json = await res.json();
+    if (!res.ok){ document.getElementById('msg').innerText = json.message || 'Login failed'; return; }
+    location.href = '/';
+  });
+</script>
+</body></html>

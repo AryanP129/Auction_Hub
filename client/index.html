@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AuctionHub — Explore</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/custom.css">
+</head>
+<body class="bg-gradient-to-b from-white to-gray-50 text-gray-800">
+<header class="bg-white/80 backdrop-blur border-b sticky top-0 z-30">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="/" class="text-2xl font-extrabold text-indigo-600 flex items-center gap-2">🔨 <span>AuctionHub</span></a>
+    <nav id="nav-right" class="flex items-center gap-2"></nav>
+  </div>
+</header>
+
+<section class="max-w-7xl mx-auto px-4 pt-8">
+  <div class="bg-indigo-600 text-white rounded-3xl p-8 shadow-soft grid md:grid-cols-2 gap-6">
+    <div>
+      <h1 class="text-3xl md:text-4xl font-extrabold leading-tight">Bid. Win. Repeat.</h1>
+      <p class="opacity-90 mt-2">Explore hand‑picked auctions updated live.</p>
+      <div class="flex gap-3 mt-6">
+        <input id="search" placeholder="Search items..." class="w-full max-w-md rounded-xl px-4 py-2 text-gray-900" />
+        <select id="sort" class="rounded-xl px-3 py-2 text-gray-900">
+          <option value="latest">Latest</option>
+          <option value="ending">Ending Soon</option>
+          <option value="priceAsc">Price: Low to High</option>
+          <option value="priceDesc">Price: High to Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="hidden md:flex items-center justify-end pr-2">
+      <div class="bg-white/15 rounded-2xl p-4 text-center">
+        <div class="text-sm opacity-80">Live auctions</div>
+        <div id="liveCount" class="text-4xl font-extrabold">—</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main class="max-w-7xl mx-auto px-4 py-8">
+  <div id="grid" class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mt-2"></div>
+</main>
+
+<footer class="bg-gray-900 text-gray-200 mt-12">
+  <div class="max-w-7xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div><div class="text-xl font-bold">AuctionHub</div><p class="text-sm text-gray-400 mt-2">Practice project with real-time bidding.</p></div>
+    <div><div class="font-semibold">Explore</div><ul class="text-sm text-gray-400 mt-2 space-y-1"><li><a href="/" class="hover:underline">Auctions</a></li><li><a href="/sell-item.html" class="hover:underline">Sell Item</a></li></ul></div>
+    <div><div class="font-semibold">Contact</div><p class="text-sm text-gray-400 mt-2">support@example.com</p></div>
+  </div><div class="bg-gray-800 text-center text-sm py-3">© 2025 AuctionHub</div>
+</footer>
+
+<div id="toasts"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+<script>
+  const socket = io();
+  const state = { items:[], filter:'', sort:'latest' };
+
+  function countdownHTML(endTime){
+    const t = new Date(endTime).getTime() - Date.now();
+    if (t<=0) return '<span class="badge badge-ended">Ended</span>';
+    const h = Math.floor(t/3600000), m = Math.floor((t%3600000)/60000);
+    return `<span class="badge badge-live">Ends in ${h}h ${m}m</span>`;
+  }
+
+  function render(items){
+    document.getElementById('liveCount').textContent = items.length;
+    const q = state.filter.toLowerCase();
+    let list = items.filter(i=> (i.title||'').toLowerCase().includes(q));
+    if (state.sort==='ending') list.sort((a,b)=> new Date(a.endTime)-new Date(b.endTime));
+    if (state.sort==='priceAsc') list.sort((a,b)=> a.currentPrice-b.currentPrice);
+    if (state.sort==='priceDesc') list.sort((a,b)=> b.currentPrice-a.currentPrice);
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = list.map(i=>`
+      <div class="card group">
+        <div class="relative">
+          <img src="${i.imagePath || i.imageUrl}" class="w-full h-48 object-cover transition group-hover:scale-105 duration-300" alt="${i.title}" />
+          <div class="absolute left-3 top-3">${countdownHTML(i.endTime)}</div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold text-lg line-clamp-1">${i.title}</h3>
+          <p class="text-sm text-gray-600 mt-1 line-clamp-2">${i.description || ''}</p>
+          <div class="mt-4 flex items-center justify-between">
+            <div class="text-xl font-extrabold text-green-600" data-item="${i._id}">${money(i.currentPrice)}</div>
+            <a href="/item.html?id=${i._id}" class="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">Bid Now</a>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function loadItems(){
+    const grid = document.getElementById('grid');
+    grid.innerHTML = Array.from({length:8}).map(()=>`<div class="card"><div class="skeleton h-48 w-full"></div><div class="p-4 space-y-3"><div class="skeleton h-5 w-2/3"></div><div class="skeleton h-4 w-full"></div><div class="skeleton h-8 w-1/2"></div></div></div>`).join('');
+    const res = await fetch('/api/items');
+    state.items = await res.json();
+    render(state.items);
+  }
+
+  document.getElementById('search').addEventListener('input', (e)=>{ state.filter = e.target.value; render(state.items); });
+  document.getElementById('sort').addEventListener('change', (e)=>{ state.sort = e.target.value; render(state.items); });
+
+  socket.on('newItem', (it)=>{ state.items.unshift(it); render(state.items); toast('New item listed: '+it.title); });
+  loadItems();
+</script>
+</body>
+</html>

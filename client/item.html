@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Item — AuctionHub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/custom.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+<header class="bg-white/80 backdrop-blur border-b sticky top-0 z-30">
+  <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="/" class="text-2xl font-extrabold text-indigo-600">🔨 AuctionHub</a>
+    <nav id="nav-right" class="flex items-center gap-2"></nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto p-6">
+  <div id="card" class="card p-6"></div>
+</main>
+
+<div id="toasts"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+<script>
+  const socket = io();
+  function leftLabel(end){ const t=new Date(end)-Date.now(); if(t<=0) return 'Auction ended'; const h=Math.floor(t/3600000), m=Math.floor((t%3600000)/60000), s=Math.floor((t%60000)/1000); return `${h}h ${m}m ${s}s left`; }
+  let timer;
+
+  async function placeBid(itemId){
+    const inp = document.getElementById('bidInput');
+    const amount = Number(inp.value);
+    if (!amount) return toast('Enter a valid amount');
+    const res = await fetch('/api/items/' + itemId + '/bid', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ amount }) });
+    const json = await res.json();
+    if (!res.ok) return toast(json.message || 'Bid failed. Login required.');
+    toast('Bid placed successfully');
+    inp.value = '';
+  }
+
+  async function load(){
+    const id = new URLSearchParams(location.search).get('id');
+    if (!id) return;
+    socket.emit('joinItem', id);
+    socket.on('bidUpdated', (d) => { if (d.itemId === id){ const p = document.getElementById('currentPrice'); if (p) p.innerText = money(d.amount); document.getElementById('lastBidder').textContent = d.bidder; }});
+
+    const res = await fetch('/api/items/' + id);
+    if (!res.ok){ document.getElementById('card').innerText='Item not found'; return; }
+    const it = await res.json();
+
+    document.getElementById('card').innerHTML = `
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="space-y-3">
+          <img src="${it.imagePath || it.imageUrl}" class="w-full h-80 object-cover rounded-xl" />
+          <div class="text-sm text-gray-600">Posted by <span class="font-medium">${it.sellerName||'Seller'}</span></div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-extrabold">${it.title}</h1>
+          <p class="text-gray-600 mt-2">${it.description||''}</p>
+          <div class="flex items-center gap-3 mt-3">
+            <span class="badge badge-live" id="timeLeft">—</span>
+            <span class="text-sm text-gray-600">Last bidder: <span id="lastBidder" class="font-semibold">${it.highestBidderName||'—'}</span></span>
+          </div>
+          <div class="mt-5 text-3xl font-extrabold text-green-600" id="currentPrice">${money(it.currentPrice)}</div>
+          <div class="mt-4 flex gap-3">
+            <input id="bidInput" type="number" placeholder="Enter your bid (INR)" class="border rounded-xl px-4 py-2 w-56" />
+            <button id="bidBtn" class="bg-indigo-600 text-white px-5 py-2 rounded-xl">Place Bid</button>
+          </div>
+          <a href="/" class="inline-block mt-6 text-sm text-indigo-600">← Back to Explore</a>
+        </div>
+      </div>
+    `;
+    document.getElementById('bidBtn').addEventListener('click', ()=>placeBid(it._id));
+    clearInterval(timer);
+    timer = setInterval(()=>{
+      const t = leftLabel(it.endTime);
+      document.getElementById('timeLeft').textContent = t;
+    }, 1000);
+  }
+  load();
+</script>
+</body></html>

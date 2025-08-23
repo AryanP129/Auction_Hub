@@ -1,0 +1,9 @@
+:root { --brand:#4f46e5; }
+.shadow-soft { box-shadow: 0 10px 30px rgba(2,6,23,0.08); }
+.card { background:white; border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(2,6,23,.06); overflow:hidden; }
+.badge { font-size:.75rem; padding:.15rem .5rem; border-radius:.5rem; }
+.badge-live { background:#dcfce7; color:#166534; }
+.badge-ended{ background:#fee2e2; color:#991b1b; }
+.toast { position: fixed; right: 1rem; top: 1rem; z-index: 9999; }
+.skeleton { background: linear-gradient(90deg, rgba(0,0,0,.06), rgba(0,0,0,.12), rgba(0,0,0,.06)); background-size: 200% 100%; animation: sk 1.2s ease-in-out infinite; }
+@keyframes sk { 0%{background-position: 200% 0} 100%{background-position: -200% 0} }
